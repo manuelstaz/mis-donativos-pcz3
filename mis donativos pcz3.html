@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patronato Zacualpan</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background: #f4f4f4; }
+        .container { max-width: 400px; margin: auto; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+        input, button { width: 100%; padding: 10px; margin: 10px 0; }
+        canvas { max-width: 100%; }
+    </style>
+</head>
+<body>
+    <div class="container" id="login-container">
+        <h2>Inicio de Sesión</h2>
+        <input type="text" id="username" placeholder="Nombre de usuario">
+        <input type="password" id="password" placeholder="Contraseña">
+        <button onclick="login()">Ingresar</button>
+        <button onclick="recuperarContrasena()">¿Olvidaste tu contraseña?</button>
+    </div>
+
+    <div class="container" id="dashboard" style="display:none;">
+        <h2>Panel de Control</h2>
+        <p>Saldo actual: <span id="saldo">$0</span></p>
+        <div id="admin-controls" style="display:none;">
+            <button onclick="agregarIngreso()">Agregar Ingreso</button>
+            <button onclick="registrarEgreso()">Registrar Egreso</button>
+        </div>
+        <canvas id="balanceChart"></canvas>
+    </div>
+
+    <script>
+        let saldo = 0;
+        const admins = ["presidente", "tesorero", "secretario", "vocal1", "vocal2"];
+        let isAdmin = false;
+        const usuarios = {
+            "presidente": "admin123",
+            "tesorero": "admin456",
+            "secretario": "admin789",
+            "vocal1": "admin321",
+            "vocal2": "admin654"
+        };
+
+        function login() {
+            let username = document.getElementById('username').value.toLowerCase();
+            let password = document.getElementById('password').value;
+            
+            if (usuarios[username] && usuarios[username] === password) {
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+                
+                if (admins.includes(username)) {
+                    isAdmin = true;
+                    document.getElementById('admin-controls').style.display = 'block';
+                }
+            } else {
+                Swal.fire('Error', 'Usuario o contraseña incorrectos.', 'error');
+            }
+        }
+
+        function recuperarContrasena() {
+            let username = prompt("Ingrese su nombre de usuario para recuperar la contraseña:");
+            if (usuarios[username]) {
+                Swal.fire('Recuperación de contraseña', `Su contraseña es: ${usuarios[username]}`, 'info');
+            } else {
+                Swal.fire('Error', 'Usuario no registrado.', 'error');
+            }
+        }
+
+        function agregarIngreso() {
+            if (isAdmin) {
+                let nombreDonador = prompt('Ingrese el nombre del padrino (donador):');
+                let cantidad = parseFloat(prompt('Ingrese la cantidad donada:'));
+                if (!isNaN(cantidad) && cantidad > 0) {
+                    saldo += cantidad;
+                    actualizarSaldo();
+                    generarRecibo(nombreDonador, cantidad);
+                }
+            } else {
+                Swal.fire('Acceso denegado', 'Solo administradores pueden agregar ingresos.', 'error');
+            }
+        }
+
+        function registrarEgreso() {
+            if (isAdmin) {
+                let monto = parseFloat(prompt('Ingrese el monto del egreso:'));
+                if (!isNaN(monto) && monto > 0) {
+                    saldo -= monto;
+                    actualizarSaldo();
+                }
+            } else {
+                Swal.fire('Acceso denegado', 'Solo administradores pueden registrar egresos.', 'error');
+            }
+        }
+
+        function actualizarSaldo() {
+            document.getElementById('saldo').innerText = `$${saldo}`;
+        }
+
+        function generarRecibo(donador, cantidad) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const fecha = new Date().toLocaleDateString();
+            doc.setFontSize(12);
+            doc.text(`RECIBO DE DONACIÓN`, 70, 20);
+            doc.text(`Fecha: ${fecha}`, 20, 40);
+            doc.text(`Recibí de: ${donador}`, 20, 50);
+            doc.text(`Cantidad: $${cantidad}`, 20, 60);
+            doc.text(`Forma de pago: ___________`, 20, 70);
+            doc.text(`Recibido por: ___________`, 20, 80);
+            doc.text(`Firma: ____________________`, 20, 90);
+            doc.text(`GRACIAS POR SU APOYO`, 60, 110);
+            doc.save(`Recibo_${donador}.pdf`);
+        }
+    </script>
+</body>
+</html>
